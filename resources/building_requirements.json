@@ -1,0 +1,30 @@
+{
+  "barracks": {
+    "main": 3
+  },
+  "stable": {
+    "main": 10,
+    "barracks": 5,
+    "smith": 5
+  },
+  "garage": {
+    "main": 10,
+    "smith": 10
+  },
+  "snob": {
+    "main": 20,
+    "smith": 20,
+    "market": 10
+  },
+  "smith": {
+    "main": 5,
+    "barracks": 1
+  },
+  "market": {
+    "main": 3,
+    "storage": 2
+  },
+  "wall": {
+    "barracks": 1
+  }
+}
