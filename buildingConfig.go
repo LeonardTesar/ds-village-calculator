@@ -9,20 +9,22 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 )
 
-type Building struct {
-	name         string
+type BuildingInfo struct {
 	minLevel     int
 	maxLevel     int
 	currentLevel int
+	restrictions map[string]int
+	points       []int
 }
 
 var authority = "die-staemme.de"
 var path = "interface.php"
 
-func getBuildings(world string) []Building {
+func getBuildings(world string) map[string]BuildingInfo {
 	filePath := filepath.Join("resources", fmt.Sprintf("building_info_%s.xml", world))
 	buildingInfoBytes, err := os.ReadFile(filePath)
 
@@ -57,23 +59,29 @@ func fetchBuildingConfig(world string) []byte {
 	return buildingInfoBytes
 }
 
-func readFromBuildingConfig(buildingConfig []byte) []Building {
+func readFromBuildingConfig(buildingConfig []byte) map[string]BuildingInfo {
 	doc, err := xmlquery.Parse(bytes.NewReader(buildingConfig))
 	if err != nil {
 		log.Fatalf("error parsing building config bytes: %s\n", err)
 	}
 	config := xmlquery.Find(doc, "//config/*")
-	var buildings []Building
+	buildings := make(map[string]BuildingInfo)
 	for _, building := range config {
 		name := building.Data
-		maxLevel, _ := strconv.Atoi(building.SelectElement("min_level").InnerText())
-		minLevel, _ := strconv.Atoi(building.SelectElement("max_level").InnerText())
-		buildings = append(buildings, Building{
-			name:         name,
+		maxLevel, _ := strconv.Atoi(building.SelectElement("max_level").InnerText())
+		minLevel, _ := strconv.Atoi(building.SelectElement("min_level").InnerText())
+		currentLevel := 0
+		if slices.Contains([]string{"hide", "main", "storage", "place", "farm"}, name) {
+			currentLevel = 1
+		}
+
+		buildings[name] = BuildingInfo{
 			minLevel:     minLevel,
 			maxLevel:     maxLevel,
-			currentLevel: minLevel,
-		})
+			currentLevel: currentLevel,
+			restrictions: map[string]int{},
+			points:       []int{},
+		}
 	}
 	return buildings
 }
