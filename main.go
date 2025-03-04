@@ -22,18 +22,17 @@ func main() {
 		fmt.Println("Invalid village id:", err.Error())
 	}
 	buildings := getBuildings(world)
-	villageExpansionTree := NewVillageExpansionGraph(buildings)
-	villageHistory := TwStatsScraper.ScrapeVillageHistory(world, villageId)
+	villageIncreases := TwStatsScraper.ScrapeVillageHistory(world, villageId)
+	possibleVillageNodes := PossibleVillageExpansions(buildings, villageIncreases)
 
-	possibleBuildingCompositions := findPossibleBuildingCompositions(*villageExpansionTree, villageHistory)
-	for _, village := range possibleBuildingCompositions {
-		for building, level := range village {
-			fmt.Printf("%s: %d", building, level)
+	if len(possibleVillageNodes) < 50 {
+		for id, village := range possibleVillageNodes {
+			fmt.Printf("%i:", id)
+			for buildingName, buildingInfo := range village.buildings {
+				fmt.Printf("%s: %d\n", buildingName, buildingInfo.currentLevel)
+			}
 		}
 	}
-}
 
-func findPossibleBuildingCompositions(tree VillageExpansionGraphNode, history []TwStatsScraper.VillageHistoryEntry) []map[string]int {
-	//TODO: implement
-	panic("Not yet implemented")
+	fmt.Println(len(possibleVillageNodes))
 }

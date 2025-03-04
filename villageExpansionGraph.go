@@ -10,23 +10,30 @@ import (
 	"strings"
 )
 
+const StartingScore = 26
+
 type VillageExpansionGraphNode struct {
-	village  map[string]BuildingInfo
-	score    int
-	previous []*VillageExpansionGraphNode
-	next     []*VillageExpansionGraphNode
+	buildings map[string]BuildingInfo
+	score     int
+	next      []string
 }
 
-func NewVillageExpansionGraph(buildings map[string]BuildingInfo) *VillageExpansionGraphNode {
+func PossibleVillageExpansions(buildings map[string]BuildingInfo, villageIncreases []int) []VillageExpansionGraphNode {
 	completeBuildingInfo(buildings)
-	rootNode := &VillageExpansionGraphNode{
-		village:  buildings,
-		score:    26,
-		previous: nil,
-		next:     []*VillageExpansionGraphNode{},
+	rootNode := VillageExpansionGraphNode{
+		buildings: buildings,
+		score:     StartingScore,
+		next:      []string{},
 	}
-	generateGraph(rootNode, 8)
-	return rootNode
+	villageNodes := []VillageExpansionGraphNode{rootNode}
+	for _, increase := range villageIncreases {
+		var tempNodes []VillageExpansionGraphNode
+		for _, node := range villageNodes {
+			tempNodes = append(tempNodes, possibleExpandedVillages(node, increase)...)
+		}
+		villageNodes = tempNodes
+	}
+	return villageNodes
 }
 
 func generateKey(village map[string]BuildingInfo) string {
@@ -38,10 +45,11 @@ func generateKey(village map[string]BuildingInfo) string {
 	return strings.Join(nodeKey, "-")
 }
 
-var graph = make(map[string]*VillageExpansionGraphNode)
+var graph = make(map[string]bool)
 
-func generateGraph(rootNode *VillageExpansionGraphNode, scoreIncrease int) {
-	var queue []*VillageExpansionGraphNode
+func possibleExpandedVillages(rootNode VillageExpansionGraphNode, scoreIncrease int) []VillageExpansionGraphNode {
+	var queue []VillageExpansionGraphNode
+	var results []VillageExpansionGraphNode
 	desiredScore := rootNode.score + scoreIncrease
 	queue = append(queue, rootNode)
 	iteration := 0
@@ -49,47 +57,71 @@ func generateGraph(rootNode *VillageExpansionGraphNode, scoreIncrease int) {
 		if iteration%1024 == 0 {
 			fmt.Println("Iteration:", iteration)
 		}
+
+		// Pop queue element
 		villageNode := queue[0]
-		for building, buildingInfo := range villageNode.village {
-			if !villageNode.isBuildingExpandable(buildingInfo, desiredScore-villageNode.score) {
-				continue
-			}
-			buildingInfo.currentLevel += 1
-			expandedVillage := villageNode.expandVillage(building, buildingInfo)
-			key := generateKey(expandedVillage)
-
-			if village, ok := graph[key]; ok {
-				villageNode.next = append(villageNode.next, village)
-				village.previous = append(village.previous, villageNode)
-				continue
-			}
-
-			child := &VillageExpansionGraphNode{
-				village:  expandedVillage,
-				score:    villageNode.score + buildingInfo.points[expandedVillage[building].currentLevel-1],
-				previous: []*VillageExpansionGraphNode{villageNode},
-				next:     []*VillageExpansionGraphNode{},
-			}
-			villageNode.next = append(villageNode.next, child)
-			graph[key] = child
-			queue = append(queue, child)
-		}
 		queue = queue[1:]
+
+		if villageNode.score == desiredScore {
+			results = append(results, villageNode)
+		} else {
+			queue = append(queue, villageNode.generatePossibleExpansionNodes(desiredScore)...)
+		}
+
+		villageKey := generateKey(villageNode.buildings)
+		delete(graph, villageKey)
+
 		iteration++
 	}
 	fmt.Printf("Took %d iterations\n", iteration)
+	return results
+}
+
+func (n *VillageExpansionGraphNode) generatePossibleExpansionNodes(desiredScore int) []VillageExpansionGraphNode {
+	var results []VillageExpansionGraphNode
+
+	for building, buildingInfo := range n.buildings {
+		if !n.isBuildingExpandable(buildingInfo, desiredScore-n.score) {
+			continue
+		}
+		buildingInfo.currentLevel += 1
+		expandedVillage := n.expandVillage(building, buildingInfo)
+		expandedVillageKey := generateKey(expandedVillage)
+
+		if _, ok := graph[expandedVillageKey]; ok {
+			continue
+		}
+
+		child := VillageExpansionGraphNode{
+			buildings: expandedVillage,
+			score:     n.score + buildingInfo.points[expandedVillage[building].currentLevel-1],
+		}
+		graph[expandedVillageKey] = true
+		results = append(results, child)
+	}
+
+	return results
 }
 
 func (n *VillageExpansionGraphNode) isBuildingExpandable(building BuildingInfo, maxIncrease int) bool {
 	if building.currentLevel >= building.maxLevel {
 		return false
 	}
+
+	// Since current level starts at 1, slice at 0 this already looks at the value for the current level + 1
 	if building.points[building.currentLevel] > maxIncrease {
 		return false
 	}
+
+	// If it is already built, the buildings has to fulfill the requirements.
+	if building.currentLevel > 0 {
+		return true
+	}
+
+	// check building requirements
 	expandable := true
 	for requiredBuilding, requiredLevel := range building.restrictions {
-		if buildingInfo, ok := n.village[requiredBuilding]; ok {
+		if buildingInfo, ok := n.buildings[requiredBuilding]; ok {
 			if buildingInfo.currentLevel < requiredLevel {
 				expandable = false
 			}
@@ -102,7 +134,7 @@ func (n *VillageExpansionGraphNode) isBuildingExpandable(building BuildingInfo, 
 
 func (n *VillageExpansionGraphNode) expandVillage(expandedBuilding string, expandedInfo BuildingInfo) map[string]BuildingInfo {
 	expandedVillage := make(map[string]BuildingInfo)
-	for building, info := range n.village {
+	for building, info := range n.buildings {
 		if building == expandedBuilding {
 			expandedVillage[expandedBuilding] = expandedInfo
 			continue
