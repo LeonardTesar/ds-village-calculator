@@ -16,7 +16,7 @@ import (
 type BuildingInfo struct {
 	minLevel     int
 	maxLevel     int
-	currentLevel int
+	startLevel   int
 	restrictions map[string]int
 	points       []int
 }
@@ -78,7 +78,7 @@ func readFromBuildingConfig(buildingConfig []byte) map[string]BuildingInfo {
 		buildings[name] = BuildingInfo{
 			minLevel:     minLevel,
 			maxLevel:     maxLevel,
-			currentLevel: currentLevel,
+			startLevel:   currentLevel,
 			restrictions: map[string]int{},
 			points:       []int{},
 		}

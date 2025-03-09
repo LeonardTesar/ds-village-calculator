@@ -28,8 +28,8 @@ func main() {
 	if len(possibleVillageNodes) < 50 {
 		for id, village := range possibleVillageNodes {
 			fmt.Printf("%i:", id)
-			for buildingName, buildingInfo := range village.buildings {
-				fmt.Printf("%s: %d\n", buildingName, buildingInfo.currentLevel)
+			for buildingName, buildingLevel := range village.buildings {
+				fmt.Printf("%s: %d\n", buildingName, buildingLevel)
 			}
 		}
 	}
