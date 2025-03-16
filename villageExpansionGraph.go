@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
-	"strings"
 )
 
 const StartingScore = 26
@@ -43,11 +42,15 @@ func PossibleVillageExpansions(buildingInfo map[string]BuildingInfo, villageIncr
 
 func generateKey(village map[string]int) string {
 	var nodeKey []string
-	for key, value := range village {
-		nodeKey = append(nodeKey, fmt.Sprintf("%s:%d", key, value))
+	for key := range village {
+		nodeKey = append(nodeKey, key)
 	}
 	slices.Sort(nodeKey)
-	return strings.Join(nodeKey, "-")
+	var key []byte
+	for _, value := range nodeKey {
+		key = append(key, byte(village[value]))
+	}
+	return string(key)
 }
 
 var graph = make(map[string]bool)
