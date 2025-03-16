@@ -15,7 +15,6 @@ const StartingScore = 26
 type VillageExpansionGraphNode struct {
 	buildings map[string]int
 	score     int
-	next      []string
 }
 
 var BuildingConfigs map[string]BuildingInfo
@@ -30,7 +29,6 @@ func PossibleVillageExpansions(buildingInfo map[string]BuildingInfo, villageIncr
 	rootNode := VillageExpansionGraphNode{
 		buildings: startVillage,
 		score:     StartingScore,
-		next:      []string{},
 	}
 	villageNodes := []VillageExpansionGraphNode{rootNode}
 	for _, increase := range villageIncreases {
